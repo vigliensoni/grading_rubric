@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Grading Rubric with Toggle for Fail Frequencies</title>
+    <style>
+        /* Existing CSS */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+        }
+        .rubric-container {
+            background: #ffffff;
+            padding: 10px;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 1150px;
+        }
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .rubric-container h1 {
+            color: #333;
+            margin: 0;
+        }
+        #weight-message {
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        .criterion {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f9f9ff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            position: relative;
+        }
+        .criterion-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+        .criterion-header input[type="text"] {
+            flex: 1;
+            min-width: 150px;
+            padding: 5px;
+        }
+        .criterion-header label,
+        .criterion-header input[type="number"],
+        .criterion-header input[type="range"],
+        .criterion-header button {
+            padding: 5px;
+        }
+        .criterion-weight {
+            width: 70px;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex: 1;
+            min-width: 150px;
+        }
+        .slider-container label {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+        .slider {
+            flex: 1;
+        }
+        .grading-steps {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 5px;
+        }
+        .grading-step {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            background: #fff;
+            padding: 2px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        .grading-step input {
+            width: 100%;
+            padding: 2px;
+            margin-bottom: 2px;
+            font-size: 0.8rem;
+        }
+        button {
+            padding: 8px 12px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .remove-criterion {
+            background: #ff4d4d;
+        }
+        .remove-criterion:hover {
+            background: #cc0000;
+        }
+        .remove-step-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #ff4d4d;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 12px;
+            line-height: 14px;
+            text-align: center;
+            cursor: pointer;
+        }
+        .remove-step-btn:hover {
+            background: #cc0000;
+        }
+        #add-criterion {
+            margin-top: 15px;
+            width: 100%;
+        }
+        /* New CSS for the Grade Scale */
+        .grade-scale-container {
+            margin-top: 30px;
+        }
+        .grade-scale {
+            position: relative;
+            width: 100%;
+            height: 150px; /* Increased height to accommodate bars */
+            background: #e0e0e0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            overflow: hidden; /* Hide overflow from bars */
+        }
+        .grade-scale .grade-marker {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: #000;
+        }
+        .grade-scale .grade-label {
+            position: absolute;
+            top: 155px;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+        .grade-scale .percentage-label {
+            position: absolute;
+            bottom: 0;
+            transform: translateX(-50%) rotate(-90deg);
+            transform-origin: bottom left;
+            font-size: 0.7rem;
+            white-space: nowrap;
+        }
+        /* New CSS for Distribution Bars */
+        .grade-scale .distribution-bar {
+            position: absolute;
+            bottom: 0;
+            background: rgba(0, 0, 255, 0.6);
+        }
+        /* CSS for Frequency Table */
+        .frequency-table {
+            margin-top: 20px;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .frequency-table th,
+        .frequency-table td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
+        .frequency-table th {
+            background-color: #f9f9f9;
+        }
+        /* CSS for the Toggle */
+        .toggle-container {
+            margin-top: 10px;
+        }
+        .toggle-container label {
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .toggle-container input {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="rubric-container">
+        <div class="header-container">
+            <h1>Expandable Grading Rubric</h1>
+            <div id="weight-message">Total Weight: 0% ❌ (should sum to 100%)</div>
+        </div>
+        <div id="criteria">
+            <!-- Criteria will be added here -->
+        </div>
+        <button id="add-criterion">Add Criterion</button>
+
+        <!-- Toggle for Fail Frequencies -->
+        <div class="toggle-container">
+            <label><input type="checkbox" id="include-fail-toggle" checked> Include Fail Grade Frequencies</label>
+        </div>
+
+        <!-- Grade Scale -->
+        <div class="grade-scale-container">
+            <h2>Grade Scale</h2>
+            <div class="grade-scale" id="grade-scale">
+                <!-- Grade markers and labels will be added dynamically -->
+            </div>
+            <!-- Frequency Table -->
+            <table class="frequency-table" id="frequency-table">
+                <!-- Table content will be added dynamically -->
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const criteriaContainer = document.getElementById('criteria');
+        const addCriterionBtn = document.getElementById('add-criterion');
+        const includeFailToggle = document.getElementById('include-fail-toggle');
+
+        function createCriterion() {
+            const criterionDiv = document.createElement('div');
+            criterionDiv.classList.add('criterion');
+
+            criterionDiv.innerHTML = `
+                <div class="criterion-header">
+                    <input type="text" placeholder="Criterion Name" class="criterion-name">
+                    <label>Weight (%):</label>
+                    <input type="number" class="criterion-weight" min="0" max="100" value="25">
+                    <div class="slider-container">
+                        <label>Distribution:</label>
+                        <input type="range" class="distribution-slider" min="0" max="0.0001" step="0.000001" value="0">
+                    </div>
+                    <button class="add-step">Add Step</button>
+                    <button class="remove-criterion">Remove Criterion</button>
+                </div>
+                <div class="grading-steps">
+                    <!-- Grading steps will be added here -->
+                </div>
+            `;
+
+            const addStepBtn = criterionDiv.querySelector('.add-step');
+            const removeCriterionBtn = criterionDiv.querySelector('.remove-criterion');
+            const weightInput = criterionDiv.querySelector('.criterion-weight');
+            const distributionSlider = criterionDiv.querySelector('.distribution-slider');
+
+            // Event listeners
+            addStepBtn.addEventListener('click', () => {
+                addStep(criterionDiv);
+                updateStepValues(criterionDiv);
+                updateTotalWeightMessage();
+            });
+            removeCriterionBtn.addEventListener('click', () => {
+                removeCriterion(criterionDiv);
+                updateTotalWeightMessage();
+            });
+            weightInput.addEventListener('input', () => {
+                updateStepValues(criterionDiv);
+                updateTotalWeightMessage();
+            });
+            distributionSlider.addEventListener('input', () => {
+                updateStepValues(criterionDiv);
+                updateTotalWeightMessage();
+            });
+
+            // Initialize with 3 grading steps
+            for (let i = 0; i < 3; i++) {
+                addStep(criterionDiv, false);
+            }
+            updateStepValues(criterionDiv);
+
+            return criterionDiv;
+        }
+
+        function addStep(criterionDiv, adjustValues = true) {
+            const stepsContainer = criterionDiv.querySelector('.grading-steps');
+            const newStepDiv = document.createElement('div');
+            newStepDiv.classList.add('grading-step');
+            newStepDiv.innerHTML = `
+                <button class="remove-step-btn">&times;</button>
+                <input type="text" placeholder="Step Name" class="step-name">
+                <input type="number" placeholder="Value (%)" class="step-value" readonly>
+            `;
+            stepsContainer.appendChild(newStepDiv);
+
+            const removeStepBtn = newStepDiv.querySelector('.remove-step-btn');
+
+            removeStepBtn.addEventListener('click', () => {
+                removeStep(criterionDiv, newStepDiv);
+                updateStepValues(criterionDiv);
+                updateTotalWeightMessage();
+            });
+
+            if (adjustValues) updateStepValues(criterionDiv);
+        }
+
+        function removeStep(criterionDiv, stepDiv) {
+            const stepsContainer = criterionDiv.querySelector('.grading-steps');
+            stepsContainer.removeChild(stepDiv);
+            updateStepValues(criterionDiv);
+        }
+
+        function removeCriterion(criterionDiv) {
+            criteriaContainer.removeChild(criterionDiv);
+            updateTotalWeightMessage();
+        }
+
+        function updateStepValues(criterionDiv) {
+            const weight = parseFloat(criterionDiv.querySelector('.criterion-weight').value) || 0;
+            const stepValueInputs = criterionDiv.querySelectorAll('.step-value');
+            const stepCount = stepValueInputs.length;
+            const distributionSlider = criterionDiv.querySelector('.distribution-slider');
+            const s = parseFloat(distributionSlider.value); // Slider value between 0 and 0.01
+
+            if (stepCount < 1) return;
+
+            const exponent = 1 + s * 9000; // Exponent ranges from 1 to 10 when s ranges from 0.0 to 0.01
+
+            for (let i = 0; i < stepCount; i++) {
+                let x = i / (stepCount - 1); // Normalized position between 0 and 1
+                const stepValue = (1 - Math.pow(1 - x, exponent)) * weight;
+                stepValueInputs[i].value = (Math.floor(stepValue * 100) / 100).toFixed(2); // Truncate to 2 decimals
+            }
+        }
+
+        function updateTotalWeightMessage() {
+            const weightMessage = document.getElementById('weight-message');
+            const weightInputs = document.querySelectorAll('.criterion-weight');
+            let totalWeight = 0;
+
+            weightInputs.forEach(input => {
+                const weight = parseFloat(input.value) || 0;
+                totalWeight += weight;
+            });
+
+            totalWeight = (Math.floor(totalWeight * 100) / 100).toFixed(2); // Truncate to 2 decimals
+
+            if (totalWeight == 100) {
+                weightMessage.textContent = `Total Weight: ${totalWeight}% ✅`;
+                weightMessage.style.color = 'green';
+                calculateAndDisplayDistribution();
+            } else {
+                weightMessage.textContent = `Total Weight: ${totalWeight}% ❌ (should sum to 100%)`;
+                weightMessage.style.color = 'red';
+                clearDistribution();
+            }
+        }
+
+        // Grade Scale Setup
+        function setupGradeScale() {
+            const gradeScale = document.getElementById('grade-scale');
+            gradeScale.innerHTML = ''; // Clear previous content
+
+            // Updated grades and boundaries
+            const grades = ['F', 'D-', 'D', 'D+', 'C-', 'C', 'C+', 'B-', 'B', 'B+', 'A-', 'A', 'A+'];
+            const gradeBoundaries = [0, 60, 64, 67, 70, 74, 77, 80, 84, 87, 90, 94, 97, 100];
+
+            // Add markers and labels for grades
+            for (let i = 1; i < gradeBoundaries.length; i++) {
+                const boundary = gradeBoundaries[i];
+                const position = (boundary / 100) * 100;
+
+                // Create grade marker at the boundary
+                const marker = document.createElement('div');
+                marker.classList.add('grade-marker');
+                marker.style.left = `${position}%`;
+                gradeScale.appendChild(marker);
+
+                // Create percentage label aligned with marker
+                const percentageLabel = document.createElement('div');
+                percentageLabel.classList.add('percentage-label');
+                percentageLabel.style.left = `${position}%`;
+                percentageLabel.textContent = `${boundary}%`;
+                gradeScale.appendChild(percentageLabel);
+
+                // Create grade label centered between boundaries
+                if (i < grades.length) {
+                    const prevBoundary = gradeBoundaries[i - 1];
+                    const gradeCenter = ((prevBoundary + boundary) / 2);
+                    const gradePosition = (gradeCenter / 100) * 100;
+
+                    const label = document.createElement('div');
+                    label.classList.add('grade-label');
+                    label.style.left = `${gradePosition}%`;
+                    label.textContent = grades[i - 1];
+                    gradeScale.appendChild(label);
+                }
+            }
+
+            // Add percentage labels and markers at 0% and 100%
+            const zeroPercentageLabel = document.createElement('div');
+            zeroPercentageLabel.classList.add('percentage-label');
+            zeroPercentageLabel.style.left = `0%`;
+            zeroPercentageLabel.textContent = `0%`;
+            gradeScale.appendChild(zeroPercentageLabel);
+
+            const zeroMarker = document.createElement('div');
+            zeroMarker.classList.add('grade-marker');
+            zeroMarker.style.left = `0%`;
+            gradeScale.appendChild(zeroMarker);
+
+            const hundredPercentageLabel = document.createElement('div');
+            hundredPercentageLabel.classList.add('percentage-label');
+            hundredPercentageLabel.style.left = `100%`;
+            hundredPercentageLabel.textContent = `100%`;
+            gradeScale.appendChild(hundredPercentageLabel);
+
+            const hundredMarker = document.createElement('div');
+            hundredMarker.classList.add('grade-marker');
+            hundredMarker.style.left = `100%`;
+            gradeScale.appendChild(hundredMarker);
+        }
+
+        function clearDistribution() {
+            const gradeScale = document.getElementById('grade-scale');
+            const bars = gradeScale.querySelectorAll('.distribution-bar');
+            bars.forEach(bar => bar.remove());
+
+            // Clear frequency table
+            const frequencyTable = document.getElementById('frequency-table');
+            frequencyTable.innerHTML = '';
+        }
+
+        function calculateAndDisplayDistribution() {
+            const criteria = document.querySelectorAll('.criterion');
+            const stepValuesPerCriterion = [];
+
+            // Collect step values from each criterion
+            criteria.forEach(criterion => {
+                const stepValueInputs = criterion.querySelectorAll('.step-value');
+                const values = [];
+                stepValueInputs.forEach(input => {
+                    values.push(parseFloat(input.value));
+                });
+                stepValuesPerCriterion.push(values);
+            });
+
+            // Calculate all possible total scores and count frequencies per grade bin
+            const gradeFrequencies = {};
+
+            const grades = ['F', 'D-', 'D', 'D+', 'C-', 'C', 'C+', 'B-', 'B', 'B+', 'A-', 'A', 'A+'];
+            const gradeBoundaries = [0, 60, 64, 67, 70, 74, 77, 80, 84, 87, 90, 94, 97, 100];
+
+            // Initialize grade frequencies
+            grades.forEach(grade => {
+                gradeFrequencies[grade] = 0;
+            });
+
+            function combine(index, currentSum) {
+                if (index === stepValuesPerCriterion.length) {
+                    const totalScore = Math.round(currentSum * 100) / 100; // Round to two decimals
+                    const grade = getGrade(totalScore);
+                    gradeFrequencies[grade]++;
+                    return;
+                }
+                const values = stepValuesPerCriterion[index];
+                values.forEach(value => {
+                    combine(index + 1, currentSum + value);
+                });
+            }
+
+            function getGrade(score) {
+                for (let i = 1; i < gradeBoundaries.length; i++) {
+                    if (score < gradeBoundaries[i]) {
+                        return grades[i - 1];
+                    }
+                }
+                return grades[grades.length - 1]; // Last grade (A+)
+            }
+
+            combine(0, 0);
+
+            // Check if Fail frequencies should be included
+            const includeFail = includeFailToggle.checked;
+
+            // Adjust frequencies if Fail is excluded
+            let adjustedFrequencies = { ...gradeFrequencies };
+            if (!includeFail) {
+                const failFrequency = adjustedFrequencies['F'];
+                delete adjustedFrequencies['F'];
+
+                const totalPassingFrequency = Object.values(adjustedFrequencies).reduce((a, b) => a + b, 0);
+
+                // Rescale frequencies proportionally
+                for (let grade in adjustedFrequencies) {
+                    adjustedFrequencies[grade] = adjustedFrequencies[grade]; // Counts remain the same
+                }
+
+                // Adjust max frequency for scaling
+                var maxFrequency = Math.max(...Object.values(adjustedFrequencies));
+            } else {
+                // Include Fail frequencies
+                var maxFrequency = Math.max(...Object.values(adjustedFrequencies));
+            }
+
+            displayDistribution(adjustedFrequencies, maxFrequency, grades, gradeBoundaries, includeFail);
+            displayFrequencyTable(adjustedFrequencies, includeFail);
+        }
+
+        function displayDistribution(gradeFrequencies, maxFrequency, grades, gradeBoundaries, includeFail) {
+            const gradeScale = document.getElementById('grade-scale');
+
+            // Remove existing bars
+            const existingBars = gradeScale.querySelectorAll('.distribution-bar');
+            existingBars.forEach(bar => bar.remove());
+
+            // Create bars for each grade bin
+            for (let i = 0; i < grades.length; i++) {
+                const grade = grades[i];
+                if (!includeFail && grade === 'F') continue; // Skip Fail grade if not included
+
+                const frequency = gradeFrequencies[grade];
+                if (frequency === 0) continue; // Skip if frequency is zero
+
+                const height = (frequency / maxFrequency) * 100; // Height as percentage of max frequency
+
+                let bar = document.createElement('div');
+                bar.classList.add('distribution-bar');
+                bar.style.height = `${height}%`;
+                bar.title = `Grade: ${grade}\nFrequency: ${frequency}`;
+
+                const gradeStart = gradeBoundaries[i];
+                const gradeEnd = gradeBoundaries[i + 1];
+                const gradeWidth = ((gradeEnd - gradeStart) / 100) * 100;
+                const position = (gradeStart / 100) * 100;
+
+                bar.style.left = `${position}%`;
+                bar.style.width = `${gradeWidth}%`;
+
+                gradeScale.appendChild(bar);
+            }
+        }
+
+        function displayFrequencyTable(gradeFrequencies, includeFail) {
+            const frequencyTable = document.getElementById('frequency-table');
+            frequencyTable.innerHTML = ''; // Clear previous content
+
+            const grades = includeFail ? Object.keys(gradeFrequencies) : Object.keys(gradeFrequencies).filter(g => g !== 'F');
+
+            // Create table headers
+            const headerRow = document.createElement('tr');
+            const gradeHeader = document.createElement('th');
+            gradeHeader.textContent = 'Grade';
+            headerRow.appendChild(gradeHeader);
+
+            const frequencyHeader = document.createElement('th');
+            frequencyHeader.textContent = 'Frequency';
+            headerRow.appendChild(frequencyHeader);
+
+            frequencyTable.appendChild(headerRow);
+
+            // Populate table rows
+            grades.forEach(grade => {
+                const row = document.createElement('tr');
+                const gradeCell = document.createElement('td');
+                gradeCell.textContent = grade;
+                row.appendChild(gradeCell);
+
+                const frequencyCell = document.createElement('td');
+                frequencyCell.textContent = gradeFrequencies[grade];
+                row.appendChild(frequencyCell);
+
+                frequencyTable.appendChild(row);
+            });
+        }
+
+        // Initialize with one criterion
+        function initialize() {
+            const initialCriterion = createCriterion();
+            criteriaContainer.appendChild(initialCriterion);
+            updateTotalWeightMessage();
+            setupGradeScale();
+        }
+
+        addCriterionBtn.addEventListener('click', () => {
+            const newCriterion = createCriterion();
+            criteriaContainer.appendChild(newCriterion);
+            updateTotalWeightMessage();
+        });
+
+        includeFailToggle.addEventListener('change', () => {
+            updateTotalWeightMessage();
+        });
+
+        // Run initialization
+        initialize();
+    </script>
+</body>
+</html>
